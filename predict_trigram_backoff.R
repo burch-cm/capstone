@@ -1,3 +1,4 @@
+## Markov model of order 3, with backoff
 # prep -----
 library(data.table)
 wd <- "~/Documents/code/capstone"
@@ -19,7 +20,6 @@ get.ng <- function(phrase){
 
 predict.next <- function(phrase = "", n = 1, dt = dt1){
     require(data.table)
-    require(magrittr)
     if(phrase == "") return("Phrase empty.")
     ng <- get.ng(phrase)
     k <- length(ng)
