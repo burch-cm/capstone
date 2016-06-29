@@ -1,18 +1,18 @@
 wd <- "~/Documents/code/capstone"
 if(getwd() != wd) setwd(wd)
 library(data.table)
-# prediction function -----
-markov_predict <- function(phrase = "", dt, n = 1, remove_sw = FALSE){
+# prediction functions -----
+markov_predict <- function(phrase = "", dt, n = 1){
     require(data.table)
     require(tm)
-    rsw <- remove_sw
-    get.ng <- function(phrase, remove_sw = rsw){
+    get.ng <- function(phrase){
         require(tm)
         require(ngram)
+        phrase <- removePunctuation(phrase)
         phrase <- gsub("[^a-zA-z]", " ", phrase) # remove non-alpha
+        phrase <- removeWords(phrase, words = stopwords('english'))
         phrase <- stripWhitespace(phrase) # remove interword whitespace
         phrase <- gsub("^\\s+|\\s+$", "", phrase) # leading and trailing whitespace
-        if(remove_sw == TRUE) phrase <- removeWords(phrase, words = stopwords('english'))
         ng <- ngram_asweka(phrase, min = 1, max = 1) # get ngrams
         return(ng)
     }
@@ -58,20 +58,18 @@ glove_predict <- function(phrase, dt_source, n = 10){
         word_tokenizer() %>%
         unlist
     setnames(dt_source, old = 1, new = c('word'))
-    m_query <- sapply(tokens, FUN = function(x) dt_source[word == x,])
-    m_query <- m_query[2:nrow(m_query), ]
-    if(length(tokens) > 1){
-        m_query <- apply(m_query, 1, FUN = function(x) sum(unlist(x))) %>% as.matrix %>% t
-    } else {
-        m_query <- as.matrix(unlist(m_query)) %>% t
-    }
+    
+    dt_query <- dt_source[word %in% tokens, ]
+    dt_query[, word := NULL]
+    m_query <- dt_query[, colMeans(.SD)] %>% matrix(nrow = 1)
     cos_dist(m_query, dt_source)[1,] %>% sort(decreasing = T) %>% head(n)
 }
+
 # load data -----
-markov_dt <- fread("./data/merged_table_n4.csv")
+markov_dt <- fread("./data/merged_table_stopwords.csv")
 glove_dt <- fread("./data/word_vectors.csv")
 # -----
 
-phrase <- "I do not like green eggs and"
+phrase <- "I can't read anything without my reading"
 markov_predict(phrase, markov_dt, n = 10)
 glove_predict(phrase, glove_dt, n = 10)
